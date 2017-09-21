@@ -6,6 +6,11 @@ import { JoyEditorProvider } from './providers/joyEditorProvider';
 import JoyEditorsSettings from './common/configSettings';
 
 export function activate(context: vscode.ExtensionContext) {
+  const joyEditorUri = vscode.Uri.parse('joy-editor://authority/JoyEditor');
+  
+   if (typeof vscode.window.activeTextEditor == 'undefined') {
+    vscode.window.showErrorMessage("Active editor doesn't show a JOY script - please open one and relaunch the Joy Editor extension.");
+  }
 
   const settings = new JoyEditorsSettings();
 
@@ -14,30 +19,42 @@ export function activate(context: vscode.ExtensionContext) {
     port: settings.get('socketOptions'),
   };
 
-  context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(
-    'joy-editor', new JoyEditorProvider(socketOptions)));
-
-  const devtoolsUri = vscode.Uri.parse('joy-editor://authority/JoyEditor');
+  let provider = new JoyEditorProvider(socketOptions);
+	let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', provider);
+  context.subscriptions.push(registration);
   
-  context.subscriptions.push(vscode.commands.registerCommand('extension.openJoyEditor', () => {
+	vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
+		if (e.document === vscode.window.activeTextEditor.document && typeof provider !== 'undefined') {
+			provider.update(joyEditorUri);
+		}
+	});
+
+	vscode.window.onDidChangeTextEditorSelection((e: vscode.TextEditorSelectionChangeEvent) => {
+		if (e.textEditor === vscode.window.activeTextEditor && typeof provider !== 'undefined') {
+			provider.update(joyEditorUri);
+		}
+	})
+
+  let cmdOpenJoyEditor = vscode.commands.registerCommand('extension.openJoyEditor', () => {
     return vscode.commands.executeCommand(
       'vscode.previewHtml',
-      devtoolsUri,
+      joyEditorUri,
       vscode.ViewColumn.Two
     ).then((success) => {
       console.log('starting joy editor')
     }, (reason) => {
       vscode.window.showErrorMessage(reason);
     });
-  }));
+  });
+  context.subscriptions.push(cmdOpenJoyEditor, registration);
 
-  context.subscriptions.push(vscode.commands.registerCommand('extension.startRemotedevServer', () => {
+  let cmdStartRemoteDevServer = vscode.commands.registerCommand('extension.startRemotedevServer', () => {
     return new Promise((resolve, reject) => {
       resolve();
     }).then(() => console.log('remotedev start successfully'));
-  }));
+  });
+  context.subscriptions.push(cmdStartRemoteDevServer, registration);
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {
 }

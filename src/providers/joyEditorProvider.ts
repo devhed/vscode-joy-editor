@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
+var _joyExtension = "joy";
+
 type socketOptions = {
   hostname: string
   port: number
 }
 
 export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
+  private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+  
   private socketOptions = {
     hostname: '127.0.0.1',
     port: 1024,
@@ -16,7 +20,37 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     this.socketOptions = options;
   }
 
-  public provideTextDocumentContent(uri: vscode.Uri): vscode.ProviderResult<string> {
+  public provideTextDocumentContent(uri: vscode.Uri): string {
+    return this.createJoyEditorPreview(uri);
+  }
+
+  get onDidChange(): vscode.Event<vscode.Uri> {
+    return this._onDidChange.event;
+  }
+
+  public update(uri: vscode.Uri) {
+    this._onDidChange.fire(uri);
+  }
+
+  public createJoyEditorPreview(uri: vscode.Uri): string {
+    const reason = "Active editor doesn't show a JOY script - please open one and relaunch the Joy Editor extension.";
+    if(typeof vscode.window.activeTextEditor === 'undefined' || !vscode.window.activeTextEditor.document.fileName.endsWith(_joyExtension)){
+      // close the extension and force the user to re-launch
+      vscode.commands.executeCommand(
+        'workbench.action.closeActiveEditor',
+        vscode.ViewColumn.Two
+      ).then((success) => {
+        console.log('closing the Joy Editor extension')
+      }, (reason) => {
+        vscode.window.showErrorMessage(reason);
+      });
+      return this.errorSnippet(reason)      
+    }
+      return this.extractSnippet(uri);
+  }
+
+  private extractSnippet(uri: vscode.Uri): string {
+
     var relativePath = path.dirname(__dirname);
     console.log(`test ${relativePath}`)
     
@@ -56,5 +90,12 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         </ul>
     </body>
     </html>`
+  }
+
+  private errorSnippet(error: string): string {
+    return `
+      <body>
+        ${error}
+      </body>`;
   }
 }
