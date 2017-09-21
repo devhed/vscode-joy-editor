@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 var _joyExtension = "joy";
+var _providerHtml = "";
 
 type socketOptions = {
   hostname: string
@@ -33,29 +34,26 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
   }
 
   public createJoyEditorPreview(uri: vscode.Uri): string {
-    const reason = "Active editor doesn't show a JOY script - please open one and relaunch the Joy Editor extension.";
+    const reason = "Active editor doesn't show a JOY script - please open one and/or relaunch the Joy Editor extension.";
     if(typeof vscode.window.activeTextEditor === 'undefined' || !vscode.window.activeTextEditor.document.fileName.endsWith(_joyExtension)){
       // close the extension and force the user to re-launch
-      vscode.commands.executeCommand(
-        'workbench.action.closeActiveEditor',
-        vscode.ViewColumn.Two
-      ).then((success) => {
-        console.log('closing the Joy Editor extension')
-      }, (reason) => {
-        vscode.window.showErrorMessage(reason);
-      });
-      return this.errorSnippet(reason)      
+      // vscode.commands.executeCommand(
+      //   'workbench.action.closeActiveEditor',
+      // ).then((success) => {
+      //   console.log('closing the Joy Editor extension')
+      // }, (reason) => {
+      //   vscode.window.showErrorMessage(reason);
+      // });
+      _providerHtml = this.errorPreview(reason);
+      return _providerHtml
     }
-      return this.extractSnippet(uri);
+      return this.joyEditorPreview(uri);
   }
 
-  private extractSnippet(uri: vscode.Uri): string {
+  private joyEditorPreview(uri: vscode.Uri): string {
 
     var relativePath = path.dirname(__dirname);
-    console.log(`test ${relativePath}`)
-    
-    return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-    <html xmlns="http://www.w3.org/1999/xhtml">
+    _providerHtml = `
     <head>
         <title>Be Brief!</title>
         <link rel="Stylesheet" href="${relativePath}/../../assets/brief/Default.css" type="text/css" />
@@ -88,11 +86,15 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
             <li>Square brackets for quotations</li>
             <li>Double quotes for strings</li>
         </ul>
-    </body>
-    </html>`
+    </body>`;
+    return _providerHtml;
   }
 
-  private errorSnippet(error: string): string {
+  public getProviderHtml(): string {
+    return _providerHtml;
+  }
+
+  private errorPreview(error: string): string {
     return `
       <body>
         ${error}

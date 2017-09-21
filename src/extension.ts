@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
   const joyEditorUri = vscode.Uri.parse('joy-editor://authority/JoyEditor');
   
    if (typeof vscode.window.activeTextEditor == 'undefined') {
-    vscode.window.showErrorMessage("Active editor doesn't show a JOY script - please open one and relaunch the Joy Editor extension.");
+    vscode.window.showErrorMessage("Active editor doesn't show a JOY script - please open one and/or relaunch the Joy Editor extension.");
   }
 
   const settings = new JoyEditorsSettings();
@@ -23,16 +23,17 @@ export function activate(context: vscode.ExtensionContext) {
 	let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', provider);
   context.subscriptions.push(registration);
   
-	vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
-		if (e.document === vscode.window.activeTextEditor.document && typeof provider !== 'undefined') {
-			provider.update(joyEditorUri);
-		}
-	});
+	// vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
+	// 	if (e.document === vscode.window.activeTextEditor.document && typeof provider !== 'undefined') {
+	// 		provider.update(joyEditorUri);
+	// 	}
+	// });
 
 	vscode.window.onDidChangeTextEditorSelection((e: vscode.TextEditorSelectionChangeEvent) => {
-		if (e.textEditor === vscode.window.activeTextEditor && typeof provider !== 'undefined') {
-			provider.update(joyEditorUri);
-		}
+		if (e.textEditor === vscode.window.activeTextEditor && typeof provider !== 'undefined'       
+      && e.textEditor.document.fileName.endsWith('joy') && provider.getProviderHtml().trim().startsWith('<body>')) {
+        provider.update(joyEditorUri);
+      }
 	})
 
   let cmdOpenJoyEditor = vscode.commands.registerCommand('extension.openJoyEditor', () => {
@@ -41,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
       joyEditorUri,
       vscode.ViewColumn.Two
     ).then((success) => {
-      console.log('starting joy editor')
+      console.log(`starting joy editor`)
     }, (reason) => {
       vscode.window.showErrorMessage(reason);
     });
@@ -57,4 +58,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+  console.log('deactivate');
 }
