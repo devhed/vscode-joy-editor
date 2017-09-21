@@ -10,13 +10,13 @@
         "email": "anthony.tamez@archarithms.com"
     },
     "license": "MIT",
-    "homepage": "https://github.com/jkzing/vscode-redux-devtools",
+    "homepage": "https://github.com/Archarithms/vscode-joy-editor",
     "repository": {
         "type": "git",
-        "url": "https://github.com/jkzing/vscode-redux-devtools"
+        "url": "https://github.com/Archarithms/vscode-joy-editor"
     },
     "bugs": {
-        "url": "https://github.com/jkzing/vscode-redux-devtools/issues"
+        "url": "https://github.com/Archarithms/vscode-joy-editor"
     },
     "galleryBanner": {
         "color": "#35364E",
