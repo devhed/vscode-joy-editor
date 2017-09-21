@@ -49,6 +49,14 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(cmdOpenJoyEditor, registration);
 
+  let cmdReloadJoyEditor = vscode.commands.registerCommand('extension.reloadJoyEditor', () => {
+		if (typeof provider !== 'undefined') {
+      console.log('do it!');
+      // provider.update(joyEditorUri);
+    }
+  });
+  context.subscriptions.push(cmdOpenJoyEditor, registration);
+
   let cmdStartRemoteDevServer = vscode.commands.registerCommand('extension.startRemotedevServer', () => {
     return new Promise((resolve, reject) => {
       resolve();
