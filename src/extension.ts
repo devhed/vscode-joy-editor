@@ -3,7 +3,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { JoyEditorProvider } from './providers/joyEditorProvider';
-import ParsedFileProvider from './providers/parsedFileProvider';
 import JoyEditorsSettings from './common/configSettings';
 
 export function activate(context: vscode.ExtensionContext) {
