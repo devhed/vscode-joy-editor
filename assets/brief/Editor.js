@@ -312,6 +312,8 @@ function kind(token) {
 }
 
 function update() {
+    if($("#dropdown-search").is(":focus")) return; //Will fail if already focused. 
+    
     render(function () {
         if (token.length > 0) {
             return "<span class='" + kind(complete(token)) + "'>" + _escape(token) + "<span class='cursor'>|</span><span class='complete'>" + complete(token).substr(token.length) + "</span></span>";
@@ -335,6 +337,8 @@ function update() {
 }
 
 $(document).keyup(function (e) {
+    if($("#dropdown-search").is(":focus")) return; //Will fail if already focused. 
+    
     console.log(`keyup ${e.which}`);
     
     switch (e.which) {
@@ -344,11 +348,39 @@ $(document).keyup(function (e) {
 
 });
 
+function myHello(){
+    console.log('myHello!');
+    $(function() {
+        hello();
+        // $('#hello');                
+    });
+}
+
 $(document).keydown(function (e) {
+    if($("#dropdown-search").is(":focus")) return; //Will fail if already focused. 
+    
     console.log(`keydown ${e.which}`);
     
     switch (e.which) {
         case 8: // Backspac
+            console.log('backspace!');
+
+            // $(function() {
+            //     // hello();
+            //     $('#hello');                
+            // });
+
+            myHello();
+
+            $('#testFunction');                
+            
+            $(document).ready(function() {
+                console.log('test1');
+                // var json = {status : 'ok', message: 'Hello'};
+                $('#testFunction');                
+            });
+            // $( document ).ready( foo );
+            
             e.preventDefault();
             if (token.length > 0)
                 token = token.substr(0, token.length - 1);
@@ -462,6 +494,8 @@ $(document).keydown(function (e) {
 });
 
 $(document).keypress(function (e) {
+    if($("#dropdown-search").is(":focus")) return; //Will fail if already focused. 
+    
     e.preventDefault();
     if (inQuote) {
         switch (e.which) {
