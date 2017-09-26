@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { JoyEditorProvider } from './providers/joyEditorProvider';
+import ParsedFileProvider from './providers/parsedFileProvider';
 import JoyEditorsSettings from './common/configSettings';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -13,23 +14,29 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   const settings = new JoyEditorsSettings();
-
   const socketOptions = {
     hostname: settings.get('hostname'),
     port: settings.get('socketOptions'),
   };
 
-  let provider = new JoyEditorProvider(socketOptions);
+  console.log('test providers');
+  // const parsedFileProvider = new ParsedFileProvider();
+  // register provider and a scheme
+	// let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', parsedFileProvider);
+  
+  let provider = new JoyEditorProvider(socketOptions);  
 	let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', provider);
   context.subscriptions.push(registration);
   
-	// vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
-	// 	if (e.document === vscode.window.activeTextEditor.document && typeof provider !== 'undefined') {
-	// 		provider.update(joyEditorUri);
-	// 	}
-	// });
+	vscode.workspace.onDidChangeTextDocument((e: vscode.TextDocumentChangeEvent) => {
+    console.log(`onDidChangeTextDocument!`);
+		// if (e.document === vscode.window.activeTextEditor.document && typeof provider !== 'undefined') {
+		// 	provider.update(joyEditorUri);
+		// }
+	});
 
 	vscode.window.onDidChangeTextEditorSelection((e: vscode.TextEditorSelectionChangeEvent) => {
+    console.log(`onDidChangeTextEditorSelection!`);
 		if (e.textEditor === vscode.window.activeTextEditor && typeof provider !== 'undefined'       
       && e.textEditor.document.fileName.endsWith('joy') && provider.getProviderHtml().trim().startsWith('<body>')) {
         provider.update(joyEditorUri);
@@ -57,13 +64,30 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(cmdOpenJoyEditor, registration);
 
-  let cmdStartRemoteDevServer = vscode.commands.registerCommand('extension.startRemotedevServer', () => {
-    return new Promise((resolve, reject) => {
-      resolve();
-    }).then(() => console.log('remotedev start successfully'));
-  });
-  context.subscriptions.push(cmdStartRemoteDevServer, registration);
+  // let cmdStartRemoteDevServer = vscode.commands.registerCommand('extension.startRemotedevServer', () => {
+  //   return new Promise((resolve, reject) => {
+  //     resolve();
+  //   }).then(() => console.log('remotedev start successfully'));
+  // });
+  // context.subscriptions.push(cmdStartRemoteDevServer, registration);
 }
+
+export default function (context : vscode.ExtensionContext)  : Thenable <vscode.TextEditor> {
+  return new Promise <vscode.TextEditor> ((resolve, reject) => {
+          let settingsUri = 'settings-preview://my-extension/fake/path/to/settings';
+  
+      // open a fake document (content served from the ParsedFileProvider)
+      vscode.workspace.openTextDocument(vscode.Uri.parse(settingsUri))
+              .then (doc => vscode.window.showTextDocument(doc)
+              .then (editor => {
+                  if (editor) {
+                      resolve (editor);
+                  } else {
+                      resolve (null);
+                  }
+              }))
+      });
+  }
 
 export function deactivate() {
   console.log('deactivate');
