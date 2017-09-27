@@ -18,11 +18,6 @@ export function activate(context: vscode.ExtensionContext) {
     port: settings.get('socketOptions'),
   };
 
-  console.log('test providers');
-  // const parsedFileProvider = new ParsedFileProvider();
-  // register provider and a scheme
-	// let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', parsedFileProvider);
-  
   let provider = new JoyEditorProvider(socketOptions);  
 	let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', provider);
   context.subscriptions.push(registration);

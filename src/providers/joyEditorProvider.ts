@@ -74,6 +74,43 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
   }
 
   /**
+   * Parse a joy file into memory. This function will return a string that includes a root joy file and
+   * all of its referenced libload library files.
+   * 
+   * If the root joy file references other joy files (via the libload keyword) those strinified files will replace its
+   * libload declaration line.
+   * 
+   * @param str - concatenated joy file represented as a string
+   * @param filename - the root joy file to parse
+   */
+  private recursiveLibloadParseAsString(str, filename) : string {
+    console.log(`parsing file: ${filename}`);
+    
+    var filePath = vscode.window.activeTextEditor.document.fileName.substring(0, filename.lastIndexOf(path.sep)) + path.sep;    
+
+    if (fs.existsSync (filename)) {
+      var rawFile = fs.readFileSync(filename, 'utf8');
+      var strFile = JSON.stringify(rawFile, null, 4);
+      
+      var pattern = /(?!^)"[\w]+.*?"(\s+)(libload)(\s?)./g;
+      var oldLibMatch = str.match(pattern);      
+      var newlibMatch = strFile.match(pattern);
+      str = (str === '') ? strFile : str.replace(pattern, strFile);
+      
+      if(newlibMatch !== null && typeof newlibMatch !== 'undefined'){
+        newlibMatch.forEach((a) => {
+          var lib = a.match(/(^)".*?"/g);
+          if(lib !== null && typeof lib !== 'undefined' && lib.length > 0){
+            str = this.recursiveLibloadParseAsString(str, filePath + lib[0].trim().replace(/^"(.*)\\"$/g, '$1') + '.' + _joyExtension);
+          }
+        });
+      }      
+    }
+
+    return str;
+  }
+
+  /**
    * Parse a joy file into memory. This function will return an array of joy files represented as strings.
    * If the root joy file references other joy files (via the libload keyword) those files will are added
    * to the array via recursion.
@@ -81,26 +118,30 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
    * @param array - array of joy files represented as strings
    * @param filename - the root joy file to parse
    */
-  private recursiveLibloadParser(array, filename){
+  private recursiveLibloadParseAsArray(array, filename) : string[]{
     console.log(`parsing file: ${filename}`);
     
     var filePath = vscode.window.activeTextEditor.document.fileName.substring(0, filename.lastIndexOf(path.sep)) + path.sep;    
 
     if (fs.existsSync (filename)) {
       var rawFile = fs.readFileSync(filename, 'utf8');
-      var stringifyFile = JSON.stringify(rawFile, null, 4);
-      array.push(stringifyFile);
+      var strFile = JSON.stringify(rawFile, null, 4);
       
-      var libMatch = stringifyFile.match(/(?!^)".*?"(\s+)(libload)(\s?)./g);
-      if(libMatch !== null && typeof libMatch !== 'undefined'){
-        libMatch.forEach((a) => {
+      array.push(strFile);
+      var pattern = /(?!^)"[\w]+.*?"(\s+)(libload)(\s?)./g;
+      var newlibMatch = strFile.match(pattern);
+
+      if(newlibMatch !== null && typeof newlibMatch !== 'undefined'){
+        newlibMatch.forEach((a) => {
           var lib = a.match(/(^)".*?"/g);
           if(lib !== null && typeof lib !== 'undefined' && lib.length > 0){
-            this.recursiveLibloadParser(array, filePath + lib[0].trim().replace(/^"(.*)\\"$/g, '$1') + '.' + _joyExtension);
+            return this.recursiveLibloadParseAsArray(array, filePath + lib[0].trim().replace(/^"(.*)\\"$/g, '$1') + '.' + _joyExtension);
           }
         });
       }      
     }
+
+    return array;
   }
 
   /**
@@ -113,9 +154,7 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     var relativePath = path.dirname(__dirname);
     var filename = vscode.window.activeTextEditor.document.fileName;
 
-    var array = [];
-    this.recursiveLibloadParser(array, filename);
-    console.log(array);
+    var str = this.recursiveLibloadParseAsString('', filename);
     
     _providerHtml = `
     <head>
