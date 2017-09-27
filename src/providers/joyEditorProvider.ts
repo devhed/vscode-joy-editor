@@ -14,95 +14,108 @@ type socketOptions = {
 }
 
 export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
+  
   private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
   
+  /**
+   * Socket Options (optional)
+   */
   private socketOptions = {
     hostname: '127.0.0.1',
     port: 1024,
   };
 
+  /**
+   * Constructor.
+   * 
+   * @param options - socket options
+   */
   public constructor(options: socketOptions) {
     this.socketOptions = options;
   }
 
+  /**
+   * Function that provides the text document content.
+   * 
+   * @param uri - provided file uri
+   */
   public provideTextDocumentContent(uri: vscode.Uri): string {
     return this.createJoyEditorPreview(uri);
   }
 
+  /**
+   * Function invoked after changes on made to the provided text document content.
+   */
   get onDidChange(): vscode.Event<vscode.Uri> {
     return this._onDidChange.event;
   }
 
+  /**
+   * Update Callback.
+   * 
+   * @param uri - provided file uri
+   */
   public update(uri: vscode.Uri) {
     this._onDidChange.fire(uri);
   }
 
+  /**
+   * Create the Joy Editor Preview.
+   * 
+   * @param uri - provided file uri
+   */
   public createJoyEditorPreview(uri: vscode.Uri): string {
     const reason = "Active editor doesn't show a JOY script - please open one and/or relaunch the Joy Editor extension.";
     if(typeof vscode.window.activeTextEditor === 'undefined' || !vscode.window.activeTextEditor.document.fileName.endsWith(_joyExtension)){
-      // close the extension and force the user to re-launch
-      // vscode.commands.executeCommand(
-      //   'workbench.action.closeActiveEditor',
-      // ).then((success) => {
-      //   console.log('closing the Joy Editor extension')
-      // }, (reason) => {
-      //   vscode.window.showErrorMessage(reason);
-      // });
       _providerHtml = this.errorPreview(reason);
       return _providerHtml
     }
       return this.joyEditorPreview(uri);
   }
 
-  private recursiveFileLoader(array, filename){
-    // console.log(`relativePath: ${relativePath}`);
-    console.log(`filename: ${filename}`);
+  /**
+   * Parse a joy file into memory. This function will return an array of joy files represented as strings.
+   * If the root joy file references other joy files (via the libload keyword) those files will are added
+   * to the array via recursion.
+   * 
+   * @param array - array of joy files represented as strings
+   * @param filename - the root joy file to parse
+   */
+  private recursiveLibloadParser(array, filename){
+    console.log(`parsing file: ${filename}`);
     
     var filePath = vscode.window.activeTextEditor.document.fileName.substring(0, filename.lastIndexOf(path.sep)) + path.sep;    
-    // console.log(filePath);
 
-    let fileReadString : string;
-
-    // parse file
     if (fs.existsSync (filename)) {
-      // console.log('file exists...');
-      fileReadString = fs.readFileSync(filename, 'utf8');
-      var strstr = JSON.stringify(fileReadString, null, 4);
-      // console.log(`file data: ${strstr}`);
-      array.push(strstr);
+      var rawFile = fs.readFileSync(filename, 'utf8');
+      var stringifyFile = JSON.stringify(rawFile, null, 4);
+      array.push(stringifyFile);
       
-      var arr = strstr.match(/(?!^)".*?"(\s+)(libload)(\s?)./g);
-      if(arr !== null && typeof arr !== 'undefined'){
-        arr.forEach((a) => {
-          var aa = a.match(/(^)".*?"/g);
-          if(aa !== null && typeof aa !== 'undefined' && aa.length > 0){
-            var aaa = aa[0].trim().replace(/^"(.*)\\"$/g, '$1');
-            // console.log(filePath + aaa);
-            this.recursiveFileLoader(array, filePath + aaa + '.joy');
+      var libMatch = stringifyFile.match(/(?!^)".*?"(\s+)(libload)(\s?)./g);
+      if(libMatch !== null && typeof libMatch !== 'undefined'){
+        libMatch.forEach((a) => {
+          var lib = a.match(/(^)".*?"/g);
+          if(lib !== null && typeof lib !== 'undefined' && lib.length > 0){
+            this.recursiveLibloadParser(array, filePath + lib[0].trim().replace(/^"(.*)\\"$/g, '$1') + '.' + _joyExtension);
           }
         });
       }      
-
-      // var arr = strstr.match('libload');    
-      // arr.forEach((a) => console.log(a) );
     }
-
-    // return JSON object as a string
-    var returnString = JSON.stringify(returnString, null, 4) || ''; // prettify and return
   }
 
+  /**
+   * Create the Joy Editor extension as a preview tab within vscode.
+   * 
+   * @param uri - provided file uri
+   */
   private joyEditorPreview(uri: vscode.Uri): string {
 
     var relativePath = path.dirname(__dirname);
     var filename = vscode.window.activeTextEditor.document.fileName;
 
     var array = [];
-    this.recursiveFileLoader(array, filename);
-    console.log('DONE!');
+    this.recursiveLibloadParser(array, filename);
     console.log(array);
-
-    var relativePath = path.dirname(__dirname);
-    console.log(`relative path: ${relativePath}`);
     
     _providerHtml = `
     <head>
@@ -230,10 +243,18 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     return _providerHtml;
   }
 
+  /**
+   * Get the HTML markup.
+   */
   public getProviderHtml(): string {
     return _providerHtml;
   }
 
+  /**
+   * Construct html markup based on a error message.
+   * 
+   * @param error - error message
+   */
   private errorPreview(error: string): string {
     return `
       <body>
