@@ -91,12 +91,11 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     if (fs.existsSync (filename)) {
       var rawFile = fs.readFileSync(filename, 'utf8');
       var strFile = JSON.stringify(rawFile, null, 4);
-      
-      var pattern = /(?!^)"[\w]+.*?"(\s+)(libload)(\s?)./g;
-      var oldLibMatch = str.match(pattern);      
+      var pattern = /(?!^)"([\w+]|[.]+)+.*?"(\s+)(libload)(\s?)./g;
+      var oldLibMatch = str.match(pattern);     
       var newlibMatch = strFile.match(pattern);
       str = (str === '') ? strFile : str.replace(pattern, strFile);
-      
+
       if(newlibMatch !== null && typeof newlibMatch !== 'undefined'){
         newlibMatch.forEach((a) => {
           var lib = a.match(/(^)".*?"/g);
@@ -128,7 +127,7 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
       var strFile = JSON.stringify(rawFile, null, 4);
       
       array.push(strFile);
-      var pattern = /(?!^)"[\w]+.*?"(\s+)(libload)(\s?)./g;
+      var pattern = /(?!^)"([\w+]|[.]+)+.*?"(\s+)(libload)(\s?)./g;
       var newlibMatch = strFile.match(pattern);
 
       if(newlibMatch !== null && typeof newlibMatch !== 'undefined'){
@@ -155,7 +154,8 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     var filename = vscode.window.activeTextEditor.document.fileName;
 
     var str = this.recursiveLibloadParseAsString('', filename);
-    
+    console.log(str);
+
     _providerHtml = `
     <head>
         <title>Be Brief!</title>
