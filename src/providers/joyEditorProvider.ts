@@ -54,25 +54,52 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
       return this.joyEditorPreview(uri);
   }
 
-  private joyEditorPreview(uri: vscode.Uri): string {
-
-    var relativePath = path.dirname(__dirname);
-    var filename = vscode.window.activeTextEditor.document.fileName;
-    console.log(`File to Parse...`);
-    console.log(`relativePath: ${relativePath}`);
+  private recursiveFileLoader(array, filename){
+    // console.log(`relativePath: ${relativePath}`);
     console.log(`filename: ${filename}`);
     
+    var filePath = vscode.window.activeTextEditor.document.fileName.substring(0, filename.lastIndexOf(path.sep)) + path.sep;    
+    // console.log(filePath);
+
     let fileReadString : string;
 
     // parse file
     if (fs.existsSync (filename)) {
-      console.log('file exists...');
+      // console.log('file exists...');
       fileReadString = fs.readFileSync(filename, 'utf8');
-      console.log(`file data: ${JSON.stringify(fileReadString, null, 4)}`);          
+      var strstr = JSON.stringify(fileReadString, null, 4);
+      // console.log(`file data: ${strstr}`);
+      array.push(strstr);
+      
+      var arr = strstr.match(/(?!^)".*?"(\s+)(libload)(\s?)./g);
+      if(arr !== null && typeof arr !== 'undefined'){
+        arr.forEach((a) => {
+          var aa = a.match(/(^)".*?"/g);
+          if(aa !== null && typeof aa !== 'undefined' && aa.length > 0){
+            var aaa = aa[0].trim().replace(/^"(.*)\\"$/g, '$1');
+            // console.log(filePath + aaa);
+            this.recursiveFileLoader(array, filePath + aaa + '.joy');
+          }
+        });
+      }      
+
+      // var arr = strstr.match('libload');    
+      // arr.forEach((a) => console.log(a) );
     }
 
     // return JSON object as a string
     var returnString = JSON.stringify(returnString, null, 4) || ''; // prettify and return
+  }
+
+  private joyEditorPreview(uri: vscode.Uri): string {
+
+    var relativePath = path.dirname(__dirname);
+    var filename = vscode.window.activeTextEditor.document.fileName;
+
+    var array = [];
+    this.recursiveFileLoader(array, filename);
+    console.log('DONE!');
+    console.log(array);
 
     var relativePath = path.dirname(__dirname);
     console.log(`relative path: ${relativePath}`);
