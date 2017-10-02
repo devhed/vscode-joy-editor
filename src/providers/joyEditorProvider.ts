@@ -2,9 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 const fs = require('fs');
 
-/// <reference path="../../node_modules/@types/jquery/index.d.ts" />
-import $ = require('jquery');
-
 var _joyExtension = "joy";
 var _providerHtml = "";
 
@@ -159,12 +156,12 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
     _providerHtml = `
     <head>
         <title>Be Brief!</title>
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/jquery.min.js"></script>        
-        <link rel="Stylesheet" href="${relativePath}/../../assets/brief/Default.css" type="text/css" />
-        <link rel="Stylesheet" href="${relativePath}/../../assets/brief/Editor.css" type="text/css" />
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/test.js"></script>                
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/Engine.js"></script>
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/Editor.js"></script>
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/jquery.min.js"></script>        
+        <link rel="Stylesheet" href="${relativePath}/../../assets/joyEditor/css/Default.css" type="text/css" />
+        <link rel="Stylesheet" href="${relativePath}/../../assets/joyEditor/css/Editor.css" type="text/css" />
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/test.js"></script>                
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/Engine.js"></script>
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/Editor.js"></script>
         <script>
         /* When the user clicks on the button,
         toggle between hiding and showing the dropdown content */

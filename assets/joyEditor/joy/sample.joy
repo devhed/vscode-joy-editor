@@ -1,0 +1,22 @@
+(* Sample application for editor *)
+
+"samplelib" libload.
+
+(* 
+    libload - read file and add to defines
+
+    DEFINE -
+        no lines between statements
+        ';' termination except last '.'
+*)
+
+DEFINE
+    square == dup *;
+    quad == square
+            square;
+    quad-list == [ quad ] map;
+    quad-prod-sum-diff == quad-list dup new-prod swap new-sum -.
+
+[1 2 3 4 5] quad-prod-sum-diff.
+
+
