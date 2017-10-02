@@ -2,9 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 const fs = require('fs');
 
-/// <reference path="../../node_modules/@types/jquery/index.d.ts" />
-import $ = require('jquery');
-
 var _joyExtension = "joy";
 var _providerHtml = "";
 
@@ -152,19 +149,29 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
 
     var relativePath = path.dirname(__dirname);
     var filename = vscode.window.activeTextEditor.document.fileName;
-
-    var str = this.recursiveLibloadParseAsString('', filename);
-    console.log(str);
+    
+    var joyFileStr = this.recursiveLibloadParseAsString('', filename).trim()
+    .replace(/"/g, '\\"').replace(/'/g, "\\'").replace(/;/g, "\\;");
 
     _providerHtml = `
     <head>
-        <title>Be Brief!</title>
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/jquery.min.js"></script>        
-        <link rel="Stylesheet" href="${relativePath}/../../assets/brief/Default.css" type="text/css" />
-        <link rel="Stylesheet" href="${relativePath}/../../assets/brief/Editor.css" type="text/css" />
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/test.js"></script>                
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/Engine.js"></script>
-        <script type="text/javascript" src="${relativePath}/../../assets/brief/Editor.js"></script>
+        <title>Be Brief!</title> 
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/jquery.min.js"></script>        
+        <link rel="Stylesheet" href="${relativePath}/../../resources/css/default.css" type="text/css" />
+        <link rel="Stylesheet" href="${relativePath}/../../resources/css/editor.css" type="text/css" />
+        <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/test.js"></script>
+        <script id="joyFile" type="text/javascript">
+          var name = 'joyStrUndefined';
+
+          $(function() {
+          function getJoyFileString() {
+              console.log('so far so good....');
+              return '${joyFileStr}';
+          }
+          window.getJoyFileString=getJoyFileString;
+          });
+        </script>              
+        <script type="text/javascript" src="${relativePath}/../../resources/built/joy.bundle.js"></script>
         <script>
         /* When the user clicks on the button,
         toggle between hiding and showing the dropdown content */

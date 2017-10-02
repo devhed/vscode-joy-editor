@@ -1,0 +1,16 @@
+(* FILE:   samplelib.joy *)
+
+LIBRA
+
+    _samplelib == true; 
+
+(* more 
+   comments *)
+
+    new-sum == 0 [ + ] fold;
+    new-prod == 1 [ * ] fold;
+
+    SAMPLELIB == "samplelib.joy - simple sample library\n".
+
+(* end LIBRA *)
+
