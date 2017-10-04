@@ -5,30 +5,16 @@ const fs = require('fs');
 var _joyExtension = "joy";
 var _providerHtml = "";
 
-type socketOptions = {
-  hostname: string
-  port: number
-}
-
 export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
   
   private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
-  
-  /**
-   * Socket Options (optional)
-   */
-  private socketOptions = {
-    hostname: '127.0.0.1',
-    port: 1024,
-  };
 
   /**
    * Constructor.
    * 
    * @param options - socket options
    */
-  public constructor(options: socketOptions) {
-    this.socketOptions = options;
+  public constructor() {
   }
 
   /**

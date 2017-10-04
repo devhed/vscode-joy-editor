@@ -13,12 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   const settings = new JoyEditorsSettings();
-  const socketOptions = {
-    hostname: settings.get('hostname'),
-    port: settings.get('socketOptions'),
-  };
 
-  let provider = new JoyEditorProvider(socketOptions);  
+  let provider = new JoyEditorProvider();  
 	let registration = vscode.workspace.registerTextDocumentContentProvider('joy-editor', provider);
   context.subscriptions.push(registration);
   
@@ -52,25 +48,18 @@ export function activate(context: vscode.ExtensionContext) {
 
   let cmdReloadJoyEditor = vscode.commands.registerCommand('extension.reloadJoyEditor', () => {
 		if (typeof provider !== 'undefined') {
-      console.log('do it!');
+      //TODO: implement on reload command
+      console.log('reload command...');
       // provider.update(joyEditorUri);
     }
   });
   context.subscriptions.push(cmdOpenJoyEditor, registration);
-
-  // let cmdStartRemoteDevServer = vscode.commands.registerCommand('extension.startRemotedevServer', () => {
-  //   return new Promise((resolve, reject) => {
-  //     resolve();
-  //   }).then(() => console.log('remotedev start successfully'));
-  // });
-  // context.subscriptions.push(cmdStartRemoteDevServer, registration);
 }
 
 export default function (context : vscode.ExtensionContext)  : Thenable <vscode.TextEditor> {
   return new Promise <vscode.TextEditor> ((resolve, reject) => {
           let settingsUri = 'settings-preview://my-extension/fake/path/to/settings';
   
-      // open a fake document (content served from the ParsedFileProvider)
       vscode.workspace.openTextDocument(vscode.Uri.parse(settingsUri))
               .then (doc => vscode.window.showTextDocument(doc)
               .then (editor => {
