@@ -10,13 +10,13 @@
     "email": "anthony.tamez@archarithms.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/Archarithms/vscode-joy-editor",
+  "homepage": "https://github.com/roycrippen/joyEditor",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Archarithms/vscode-joy-editor"
+    "url": "https://github.com/roycrippen/joyEditor"
   },
   "bugs": {
-    "url": "https://github.com/Archarithms/vscode-joy-editor"
+    "url": "https://github.com/roycrippen/joyEditor"
   },
   "galleryBanner": {
     "color": "#35364E",
@@ -42,23 +42,7 @@
         "command": "extension.reloadJoyEditor",
         "title": "Joy Editor: Reload the editor from the context of the current .joy file"
       }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "Joy Editor Configuration",
-      "properties": {
-        "reduxdev.hostname": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "The hostname your remotedev server started on."
-        },
-        "reduxdev.socketPort": {
-          "type": "number",
-          "default": 1024,
-          "description": "The socket port for Redux Devtools to listen."
-        }
-      }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
