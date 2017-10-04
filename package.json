@@ -67,6 +67,7 @@
     "test": "node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
+    "@types/jsdom": "^11.0.2",
     "@types/mocha": "^2.2.32",
     "@types/node": "^6.0.40",
     "mocha": "^2.3.3",
