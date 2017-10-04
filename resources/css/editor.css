@@ -1,6 +1,6 @@
 body {
     font-family: Sans-Serif;
-    background-color: #333333;
+    background-color: #232323;
     color: White;
 }
 
@@ -173,6 +173,7 @@ span {
 }
 
 #dropdown-search {
+    width: 40%;
     background-size: 24px;    
     box-sizing: border-box;
     background-image: url('./ic_search_black_24dp_2x.png');
@@ -191,20 +192,24 @@ span {
 .dropdown-content {
     display: none;
     position: absolute;
-    background-color: #f6f6f6;
-    min-width: 230px;
+    margin-top: 45px;
+    background-color: #313133;
     overflow: auto;
+    width: 40%;
+    height: 200px;
+    overflow: scroll;
+    resize: both;    
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
 }
 
 .dropdown-content a {
-    color: black;
+    color: white;
     padding: 12px 16px;
     text-decoration: none;
     display: block;
 }
 
-.dropdown a:hover {background-color: #ddd}
+.dropdown a:hover {background-color: #106298}
 
 .show {display:block;}

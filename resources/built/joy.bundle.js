@@ -60,11 +60,527 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Token values for Lexer
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+var Token;
+(function (Token) {
+    Token[Token["EOF"] = 0] = "EOF";
+    Token[Token["WHITESPACE"] = 1] = "WHITESPACE";
+    Token[Token["DOT"] = 2] = "DOT";
+    Token[Token["COLON"] = 3] = "COLON";
+    Token[Token["SEMICOLON"] = 4] = "SEMICOLON";
+    Token[Token["SINGLE_QUOTE"] = 5] = "SINGLE_QUOTE";
+    Token[Token["L_BRACKET"] = 6] = "L_BRACKET";
+    Token[Token["R_BRACKET"] = 7] = "R_BRACKET";
+    Token[Token["L_CURLY"] = 8] = "L_CURLY";
+    Token[Token["R_CURLY"] = 9] = "R_CURLY";
+    Token[Token["LIBRA"] = 10] = "LIBRA";
+    Token[Token["DEFINE"] = 11] = "DEFINE";
+    Token[Token["COMMENT"] = 12] = "COMMENT";
+    Token[Token["STRING"] = 13] = "STRING";
+    Token[Token["QUOTED_STRING"] = 14] = "QUOTED_STRING";
+    Token[Token["NEWLINE"] = 15] = "NEWLINE";
+    Token[Token["ERROR"] = 16] = "ERROR";
+    Token[Token["EQEQ"] = 17] = "EQEQ";
+    Token[Token["IDENTIFIER"] = 18] = "IDENTIFIER";
+    Token[Token["UNKNOWN"] = 19] = "UNKNOWN";
+})(Token = exports.Token || (exports.Token = {}));
+exports.keywords = {
+    "LIBRA": Token.LIBRA,
+    "DEFINE": Token.DEFINE,
+};
+exports.tokToStr = {
+    LIBRA: "LIBRA",
+    DEFINE: "DEFINE",
+    EQEQ: "==",
+    L_BRACKET: "[",
+    R_BRACKET: "]",
+    SEMICOLON: ";",
+    DOT: ".",
+};
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// Joy Language Editor
+Object.defineProperty(exports, "__esModule", { value: true });
+var $ = __webpack_require__(2);
+var engine_1 = __webpack_require__(3);
+var Editor = /** @class */ (function () {
+    function Editor() {
+        this.Root = function () {
+            return this.root;
+        };
+        this.Cursor = function () {
+            return this.cursor;
+        };
+        this.Selection = function () {
+            var from = this.selection.from;
+            var to = this.selection.to;
+            function _switch() {
+                var n = from;
+                do {
+                    if (n == to)
+                        return false;
+                    n = n.next;
+                } while (n);
+                return true;
+            }
+            if (_switch()) {
+                return { from: to, to: this.selection.from };
+            }
+            return this.selection;
+        };
+        this.HasSelection = function () {
+            return this.selection.from || this.selection.to;
+        };
+        this.SelectAll = function () {
+            if (this.root.next) {
+                this.selection.from = this.root.next;
+                var to = this.selection.from;
+                while (to.next)
+                    to = to.next;
+                this.selection.to = to;
+                this.cursor = to;
+            }
+        };
+        this.SelectNone = function () {
+            this.selection.from = this.selection.to = null;
+        };
+        this.InsertWord = function (name) {
+            var k = kind(name);
+            this.SelectNone();
+            // var f = this.cursor;
+            var next = this.cursor.next;
+            var word = { type: "Word", kind: k, name: name, prev: this.cursor, next: next, parent: this.cursor.parent };
+            if (!next && word.parent)
+                word.parent.last = word;
+            this.cursor.next = word;
+            if (next)
+                next.prev = word;
+            this.cursor = word;
+        };
+        this.InsertList = function () {
+            this.SelectNone();
+            var nil = { type: "Nil", parent: null };
+            // var f = this.cursor;
+            var next = this.cursor.next;
+            var list = { type: "List", first: nil, last: nil, prev: this.cursor, next: next, parent: this.cursor.parent };
+            nil.parent = list;
+            if (!next && list.parent)
+                list.parent.last = list;
+            this.cursor.next = list;
+            if (next)
+                next.prev = list;
+            this.cursor = nil;
+        };
+        this.MovePrev = function (stepIn, stepOut, select) {
+            if (select)
+                stepIn = stepOut = false; // Not allowed while selecting
+            else
+                this.SelectNone();
+            // var f = this.cursor;
+            if (stepIn && this.cursor.type == "List") {
+                this.cursor = this.cursor.last;
+                return true;
+            }
+            else if (this.cursor.prev) {
+                if (select)
+                    this.extendSelection(this.cursor, this.cursor.prev);
+                this.cursor = this.cursor.prev;
+                return true;
+            }
+            else if (stepOut && this.cursor.parent) {
+                this.cursor = this.cursor.parent.prev;
+                return true;
+            }
+            return false;
+        };
+        this.MoveNext = function (stepIn, stepOut, select) {
+            if (select)
+                stepIn = stepOut = false; // Not allowed while selecting
+            else
+                this.SelectNone();
+            // var f = this.cursor;
+            if (this.cursor.next) {
+                this.cursor = this.cursor.next;
+                if (stepIn && this.cursor.type == "List")
+                    this.cursor = this.cursor.first;
+                if (select)
+                    this.extendSelection(this.cursor, this.cursor.next);
+                return true;
+            }
+            else if (stepOut && this.cursor.parent) {
+                this.cursor = this.cursor.parent;
+                return true;
+            }
+            return false;
+        };
+        this.DeletePrev = function (stepIn, stepOut) {
+            if (this.HasSelection()) {
+                // TODO: Identical to other Delete*
+                var s = this.Selection(); // Normalized
+                this.cursor = s.from.prev;
+                this.cursor.next = s.to.next;
+                if (this.cursor.next)
+                    this.cursor.next.prev = this.cursor;
+                this.SelectNone();
+                return true;
+            }
+            else {
+                if (this.MovePrev(stepIn, stepOut)) {
+                    if (this.cursor.next)
+                        this.cursor.next = this.cursor.next.next;
+                    if (this.cursor.next)
+                        this.cursor.next.prev = this.cursor;
+                    if (!this.cursor.next && this.cursor.parent)
+                        this.cursor.parent.last = this.cursor;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        };
+        this.DeleteNext = function (stepIn, stepOut) {
+            if (this.HasSelection()) {
+                // TODO: Identical to other Delethiste*
+                var s = this.Selection(); // Normalized
+                this.cursor = s.from.prev;
+                this.cursor.next = s.to.next;
+                if (this.cursor.next)
+                    this.cursor.next.prev = this.cursor;
+                this.SelectNone();
+            }
+            else {
+                if (this.MoveNext(stepIn, stepOut)) {
+                    return this.DeletePrev(stepIn, stepOut);
+                }
+                else {
+                    return false;
+                }
+            }
+        };
+        this.joy = new engine_1.Joy();
+        this.root = { type: "Nil" };
+        this.cursor = this.root;
+        this.selection = { from: null, to: null };
+    }
+    // TODO: Simplify below once stepIn/stepOut usage is known
+    Editor.prototype.extendSelection = function (to, dir) {
+        if (this.selection.from == to) {
+            this.selection.from = this.selection.to = null;
+            return;
+        }
+        if (!this.selection.from)
+            this.selection.from = to;
+        if (this.selection.to == to)
+            this.selection.to = dir;
+        else
+            this.selection.to = to;
+    };
+    return Editor;
+}()); // Editor
+exports.Editor = Editor;
+// Render
+var token = "";
+var inQuote = false;
+var last = 0;
+var editor = new Editor();
+function _escape(str) {
+    return str; // TODO: Breaks rendering of >, <, words and </b> turns into a comment?!
+    //return str.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
+}
+function render(cursorFn) {
+    var cursor = editor.Cursor();
+    var selection = editor.Selection();
+    var from = selection.from;
+    var to = selection.to;
+    function _render(node, html) {
+        function _cursor() {
+            if (node && node == cursor)
+                return cursorFn();
+            else
+                return "";
+        }
+        function _selectionFrom() {
+            if (node == from)
+                return "<span class='selected'>";
+            else
+                return "";
+        }
+        function _selectionTo() {
+            if (node == to)
+                return "</span>";
+            else
+                return "";
+        }
+        if (node) {
+            switch (node.type) {
+                case "List":
+                    return _render(node.next, html + _selectionFrom() + "<span class='list'>" +
+                        _render(node.first, "") + "</span>" + _selectionTo() + _cursor());
+                case "Word":
+                    return _render(node.next, html + _selectionFrom() + "<span class='" +
+                        node.kind + "'>" + _escape(node.name) + "</span>" + _selectionTo() + _cursor());
+                case "Nil":
+                    return _render(node.next, html + _selectionFrom() + (node.next ? "" : "&nbsp;") +
+                        _selectionTo() + _cursor());
+                default:
+                    return html;
+            }
+        }
+        else {
+            return html;
+        }
+    }
+    $("#input").empty().append(_render(editor.Root(), ""));
+}
+function code(from, to) {
+    var abort = false;
+    function _code(node, out) {
+        if (node) {
+            switch (node.type) {
+                case "List":
+                    out += "[ " + _code(node.first, "") + "] ";
+                    if (abort)
+                        return out;
+                    break;
+                case "Word":
+                    out += _escape(node.name) + " ";
+                    break;
+                case "Nil":
+                    break;
+            }
+            if (node == to) {
+                abort = true;
+                return out;
+            }
+            else {
+                return _code(node.next, out);
+            }
+        }
+        else {
+            return out;
+        }
+    }
+    return _code(from, "");
+}
+// Input
+function complete(token) {
+    if (kind(token) == "unknown") {
+        var words = editor.joy.words();
+        for (var w in words) {
+            var d = words[w];
+            if (d.substr(0, token.length) == token)
+                return d;
+        }
+    }
+    if ("true".substr(0, token.length) == token)
+        return "true"; // Note: Not all completions are dictionary words
+    if ("false".substr(0, token.length) == token)
+        return "false";
+    if (token.substr(0, 1) == '"' && (token.length == 1 || token.substr(token.length - 1, 1) != '"'))
+        return token + '"';
+    return token;
+}
+function lookup(token) {
+    var words = editor.joy.words();
+    for (var w in words) {
+        if (words[w] == token)
+            return true;
+    }
+    return false;
+}
+function kind(token) {
+    try {
+        var t = typeof (eval(token));
+        switch (t) {
+            case "string":
+            case "number":
+            case "boolean":
+                return t;
+            default:
+                throw "Unknown kind: '" + token + "'";
+        }
+    }
+    catch (ex) {
+        if (lookup(token))
+            return editor.joy.word(token).kind;
+        else
+            return "unknown";
+    }
+}
+function update() {
+    if ($("#dropdown-search").is(":focus"))
+        return;
+    render(function () {
+        if (token.length > 0) {
+            return "<span class='" + kind(complete(token)) + "'>" + _escape(token) + "<span class='cursor'>|</span><span class='complete'>" + complete(token).substr(token.length) + "</span></span>";
+        }
+        else {
+            return token + "<span class='cursor'>|</span>";
+        }
+    });
+    var root = editor.Root();
+    var cursor = editor.Cursor();
+    var c = code(root, cursor);
+    // var c = code(editor.Root(), editor.Cursor());
+    $("#output").empty().append(c);
+    editor.joy.reset();
+    if (c.trim() == "words") {
+        editor.joy.execute(c);
+    }
+    else {
+        editor.joy.execute(c);
+    }
+    var ctx = editor.joy.getStack();
+    $("#context").empty();
+    for (var i = 0; i < ctx.Stack.length; i++) {
+        var s = ctx.Stack[i];
+        $("#context").append("<div class='stack'/>").append(editor.joy.print([s]));
+    }
+    $("#error").empty();
+    $("#error").append("<div class='stack'/>").append(editor.joy.print([editor.joy.getErrors()]));
+}
+$(document).keydown(function (e) {
+    if ($("#dropdown-search").is(":focus"))
+        return;
+    switch (e.which) {
+        case 8:// Backspace
+            e.preventDefault();
+            if (token.length > 0)
+                token = token.substr(0, token.length - 1);
+            else
+                editor.DeletePrev(false, false);
+            break;
+        case 46:// Delete
+            e.preventDefault();
+            editor.DeleteNext(false, false);
+            break;
+        case 37:// <-
+            e.preventDefault();
+            if (e.altKey) {
+                if (!editor.MovePrev(false, false, e.shiftKey || false))
+                    editor.MovePrev(false, true, e.shiftKey || false); // Step out
+                while (editor.MovePrev(false, false, e.shiftKey || false))
+                    ; // Move to first
+            }
+            else {
+                editor.MovePrev(e.ctrlKey || false, true, e.shiftKey || false);
+            }
+            break;
+        case 39:// ->
+            e.preventDefault();
+            if (e.altKey) {
+                if (!editor.MoveNext(false, false, e.shiftKey || false))
+                    editor.MoveNext(false, true, e.shiftKey || false); // Step out
+                while (editor.MoveNext(false, false, e.shiftKey || false))
+                    ; // Move to first
+            }
+            else {
+                editor.MoveNext(e.ctrlKey || false, true, e.shiftKey || false);
+            }
+            break;
+        case 65:// CTRL-A - Select All
+            if (e.ctrlKey) {
+                e.preventDefault();
+                editor.SelectAll();
+            }
+            break;
+    }
+    $(document).focus(); // Prompts and alerts steal focus
+    update();
+});
+$(document).keypress(function (e) {
+    if ($("#dropdown-search").is(":focus"))
+        return;
+    e.preventDefault();
+    if (inQuote) {
+        switch (e.which) {
+            case 34:// "
+                if (last != 92 /* \ */) {
+                    inQuote = false;
+                    token += '"';
+                    token = complete(token);
+                    editor.InsertWord(token);
+                    token = "";
+                }
+                else {
+                    token += '"';
+                }
+                break;
+            default:
+                if (e.which >= 32)
+                    token += String.fromCharCode(e.which);
+                break;
+        }
+        last = e.which;
+    }
+    else {
+        switch (e.which) {
+            case 32:// space
+                if (token.length > 0) {
+                    token = complete(token);
+                    editor.InsertWord(token);
+                    token = "";
+                }
+                break;
+            case 34:// "
+                if (token.length == 0)
+                    inQuote = true;
+                token += '"';
+                break;
+            case 91:// [
+                if (token.length == 0) {
+                    e.preventDefault();
+                    editor.InsertList();
+                }
+                else {
+                    token += '[';
+                }
+                break;
+            case 93:// [
+                if (token.length == 0) {
+                    e.preventDefault();
+                    editor.MoveNext(true, true, false);
+                }
+                else {
+                    token += ']';
+                }
+                break;
+            default:
+                if (e.which >= 32) {
+                    token += String.fromCharCode(e.which);
+                    editor.SelectNone();
+                }
+                break;
+        }
+    }
+    update();
+});
+$(document).ready(function () {
+    update();
+});
+
+
+/***/ }),
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -10324,530 +10840,6 @@ return jQuery;
 
 
 /***/ }),
-/* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/**
- * Token values for Lexer
- */
-Object.defineProperty(exports, "__esModule", { value: true });
-var Token;
-(function (Token) {
-    Token[Token["EOF"] = 0] = "EOF";
-    Token[Token["WHITESPACE"] = 1] = "WHITESPACE";
-    Token[Token["DOT"] = 2] = "DOT";
-    Token[Token["COLON"] = 3] = "COLON";
-    Token[Token["SEMICOLON"] = 4] = "SEMICOLON";
-    Token[Token["SINGLE_QUOTE"] = 5] = "SINGLE_QUOTE";
-    Token[Token["L_BRACKET"] = 6] = "L_BRACKET";
-    Token[Token["R_BRACKET"] = 7] = "R_BRACKET";
-    Token[Token["L_CURLY"] = 8] = "L_CURLY";
-    Token[Token["R_CURLY"] = 9] = "R_CURLY";
-    Token[Token["LIBRA"] = 10] = "LIBRA";
-    Token[Token["DEFINE"] = 11] = "DEFINE";
-    Token[Token["COMMENT"] = 12] = "COMMENT";
-    Token[Token["STRING"] = 13] = "STRING";
-    Token[Token["QUOTED_STRING"] = 14] = "QUOTED_STRING";
-    Token[Token["NEWLINE"] = 15] = "NEWLINE";
-    Token[Token["ERROR"] = 16] = "ERROR";
-    Token[Token["EQEQ"] = 17] = "EQEQ";
-    Token[Token["IDENTIFIER"] = 18] = "IDENTIFIER";
-    Token[Token["UNKNOWN"] = 19] = "UNKNOWN";
-})(Token = exports.Token || (exports.Token = {}));
-exports.keywords = {
-    "LIBRA": Token.LIBRA,
-    "DEFINE": Token.DEFINE,
-};
-exports.tokToStr = {
-    LIBRA: "LIBRA",
-    DEFINE: "DEFINE",
-    EQEQ: "==",
-    L_BRACKET: "[",
-    R_BRACKET: "]",
-    SEMICOLON: ";",
-    DOT: ".",
-};
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-// Joy Language Editor
-Object.defineProperty(exports, "__esModule", { value: true });
-var $ = __webpack_require__(0);
-var engine_1 = __webpack_require__(3);
-var Editor = /** @class */ (function () {
-    function Editor() {
-        this.Root = function () {
-            return this.root;
-        };
-        this.Cursor = function () {
-            return this.cursor;
-        };
-        this.Selection = function () {
-            var from = this.selection.from;
-            var to = this.selection.to;
-            function _switch() {
-                var n = from;
-                do {
-                    if (n == to)
-                        return false;
-                    n = n.next;
-                } while (n);
-                return true;
-            }
-            if (_switch()) {
-                return { from: to, to: this.selection.from };
-            }
-            return this.selection;
-        };
-        this.HasSelection = function () {
-            return this.selection.from || this.selection.to;
-        };
-        this.SelectAll = function () {
-            if (this.root.next) {
-                this.selection.from = this.root.next;
-                var to = this.selection.from;
-                while (to.next)
-                    to = to.next;
-                this.selection.to = to;
-                this.cursor = to;
-            }
-        };
-        this.SelectNone = function () {
-            this.selection.from = this.selection.to = null;
-        };
-        this.InsertWord = function (name) {
-            var k = kind(name);
-            this.SelectNone();
-            // var f = this.cursor;
-            var next = this.cursor.next;
-            var word = { type: "Word", kind: k, name: name, prev: this.cursor, next: next, parent: this.cursor.parent };
-            if (!next && word.parent)
-                word.parent.last = word;
-            this.cursor.next = word;
-            if (next)
-                next.prev = word;
-            this.cursor = word;
-        };
-        this.InsertList = function () {
-            this.SelectNone();
-            var nil = { type: "Nil", parent: null };
-            // var f = this.cursor;
-            var next = this.cursor.next;
-            var list = { type: "List", first: nil, last: nil, prev: this.cursor, next: next, parent: this.cursor.parent };
-            nil.parent = list;
-            if (!next && list.parent)
-                list.parent.last = list;
-            this.cursor.next = list;
-            if (next)
-                next.prev = list;
-            this.cursor = nil;
-        };
-        this.MovePrev = function (stepIn, stepOut, select) {
-            if (select)
-                stepIn = stepOut = false; // Not allowed while selecting
-            else
-                this.SelectNone();
-            // var f = this.cursor;
-            if (stepIn && this.cursor.type == "List") {
-                this.cursor = this.cursor.last;
-                return true;
-            }
-            else if (this.cursor.prev) {
-                if (select)
-                    this.extendSelection(this.cursor, this.cursor.prev);
-                this.cursor = this.cursor.prev;
-                return true;
-            }
-            else if (stepOut && this.cursor.parent) {
-                this.cursor = this.cursor.parent.prev;
-                return true;
-            }
-            return false;
-        };
-        this.MoveNext = function (stepIn, stepOut, select) {
-            if (select)
-                stepIn = stepOut = false; // Not allowed while selecting
-            else
-                this.SelectNone();
-            // var f = this.cursor;
-            if (this.cursor.next) {
-                this.cursor = this.cursor.next;
-                if (stepIn && this.cursor.type == "List")
-                    this.cursor = this.cursor.first;
-                if (select)
-                    this.extendSelection(this.cursor, this.cursor.next);
-                return true;
-            }
-            else if (stepOut && this.cursor.parent) {
-                this.cursor = this.cursor.parent;
-                return true;
-            }
-            return false;
-        };
-        this.DeletePrev = function (stepIn, stepOut) {
-            if (this.HasSelection()) {
-                // TODO: Identical to other Delete*
-                var s = this.Selection(); // Normalized
-                this.cursor = s.from.prev;
-                this.cursor.next = s.to.next;
-                if (this.cursor.next)
-                    this.cursor.next.prev = this.cursor;
-                this.SelectNone();
-                return true;
-            }
-            else {
-                if (this.MovePrev(stepIn, stepOut)) {
-                    if (this.cursor.next)
-                        this.cursor.next = this.cursor.next.next;
-                    if (this.cursor.next)
-                        this.cursor.next.prev = this.cursor;
-                    if (!this.cursor.next && this.cursor.parent)
-                        this.cursor.parent.last = this.cursor;
-                    return true;
-                }
-                else {
-                    return false;
-                }
-            }
-        };
-        this.DeleteNext = function (stepIn, stepOut) {
-            if (this.HasSelection()) {
-                // TODO: Identical to other Delethiste*
-                var s = this.Selection(); // Normalized
-                this.cursor = s.from.prev;
-                this.cursor.next = s.to.next;
-                if (this.cursor.next)
-                    this.cursor.next.prev = this.cursor;
-                this.SelectNone();
-            }
-            else {
-                if (this.MoveNext(stepIn, stepOut)) {
-                    return this.DeletePrev(stepIn, stepOut);
-                }
-                else {
-                    return false;
-                }
-            }
-        };
-        this.joy = new engine_1.Joy();
-        this.root = { type: "Nil" };
-        this.cursor = this.root;
-        this.selection = { from: null, to: null };
-    }
-    // TODO: Simplify below once stepIn/stepOut usage is known
-    Editor.prototype.extendSelection = function (to, dir) {
-        if (this.selection.from == to) {
-            this.selection.from = this.selection.to = null;
-            return;
-        }
-        if (!this.selection.from)
-            this.selection.from = to;
-        if (this.selection.to == to)
-            this.selection.to = dir;
-        else
-            this.selection.to = to;
-    };
-    return Editor;
-}()); // Editor
-exports.Editor = Editor;
-// Render
-var token = "";
-var inQuote = false;
-var last = 0;
-var editor = new Editor();
-function _escape(str) {
-    return str; // TODO: Breaks rendering of >, <, words and </b> turns into a comment?!
-    //return str.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
-}
-function render(cursorFn) {
-    var cursor = editor.Cursor();
-    var selection = editor.Selection();
-    var from = selection.from;
-    var to = selection.to;
-    function _render(node, html) {
-        function _cursor() {
-            if (node && node == cursor)
-                return cursorFn();
-            else
-                return "";
-        }
-        function _selectionFrom() {
-            if (node == from)
-                return "<span class='selected'>";
-            else
-                return "";
-        }
-        function _selectionTo() {
-            if (node == to)
-                return "</span>";
-            else
-                return "";
-        }
-        if (node) {
-            switch (node.type) {
-                case "List":
-                    return _render(node.next, html + _selectionFrom() + "<span class='list'>" +
-                        _render(node.first, "") + "</span>" + _selectionTo() + _cursor());
-                case "Word":
-                    return _render(node.next, html + _selectionFrom() + "<span class='" +
-                        node.kind + "'>" + _escape(node.name) + "</span>" + _selectionTo() + _cursor());
-                case "Nil":
-                    return _render(node.next, html + _selectionFrom() + (node.next ? "" : "&nbsp;") +
-                        _selectionTo() + _cursor());
-                default:
-                    return html;
-            }
-        }
-        else {
-            return html;
-        }
-    }
-    $("#input").empty().append(_render(editor.Root(), ""));
-}
-function code(from, to) {
-    var abort = false;
-    function _code(node, out) {
-        if (node) {
-            switch (node.type) {
-                case "List":
-                    out += "[ " + _code(node.first, "") + "] ";
-                    if (abort)
-                        return out;
-                    break;
-                case "Word":
-                    out += _escape(node.name) + " ";
-                    break;
-                case "Nil":
-                    break;
-            }
-            if (node == to) {
-                abort = true;
-                return out;
-            }
-            else {
-                return _code(node.next, out);
-            }
-        }
-        else {
-            return out;
-        }
-    }
-    return _code(from, "");
-}
-// Input
-function complete(token) {
-    if (kind(token) == "unknown") {
-        var words = editor.joy.words();
-        for (var w in words) {
-            var d = words[w];
-            if (d.substr(0, token.length) == token)
-                return d;
-        }
-    }
-    if ("true".substr(0, token.length) == token)
-        return "true"; // Note: Not all completions are dictionary words
-    if ("false".substr(0, token.length) == token)
-        return "false";
-    if (token.substr(0, 1) == '"' && (token.length == 1 || token.substr(token.length - 1, 1) != '"'))
-        return token + '"';
-    return token;
-}
-function lookup(token) {
-    var words = editor.joy.words();
-    for (var w in words) {
-        if (words[w] == token)
-            return true;
-    }
-    return false;
-}
-function kind(token) {
-    try {
-        var t = typeof (eval(token));
-        switch (t) {
-            case "string":
-            case "number":
-            case "boolean":
-                return t;
-            default:
-                throw "Unknown kind: '" + token + "'";
-        }
-    }
-    catch (ex) {
-        if (lookup(token))
-            return editor.joy.word(token).kind;
-        else
-            return "unknown";
-    }
-}
-function update() {
-    if ($("#dropdown-search").is(":focus"))
-        return; //Will fail if already focused. 
-    render(function () {
-        if (token.length > 0) {
-            return "<span class='" + kind(complete(token)) + "'>" + _escape(token) + "<span class='cursor'>|</span><span class='complete'>" + complete(token).substr(token.length) + "</span></span>";
-        }
-        else {
-            return token + "<span class='cursor'>|</span>";
-        }
-    });
-    var root = editor.Root();
-    var cursor = editor.Cursor();
-    var c = code(root, cursor);
-    // var c = code(editor.Root(), editor.Cursor());
-    $("#output").empty().append(c);
-    editor.joy.reset();
-    if (c.trim() == "words") {
-        editor.joy.execute(c);
-    }
-    else {
-        editor.joy.execute(c);
-    }
-    var ctx = editor.joy.getStack();
-    $("#context").empty();
-    for (var i = 0; i < ctx.Stack.length; i++) {
-        var s = ctx.Stack[i];
-        $("#context").append("<div class='stack'/>").append(editor.joy.print([s]));
-    }
-}
-$(document).keydown(function (e) {
-    if ($("#dropdown-search").is(":focus"))
-        return; //Will fail if already focused. 
-    switch (e.which) {
-        case 8:// Backspace
-            e.preventDefault();
-            if (token.length > 0)
-                token = token.substr(0, token.length - 1);
-            else
-                editor.DeletePrev(false, false);
-            break;
-        case 46:// Delete
-            e.preventDefault();
-            editor.DeleteNext(false, false);
-            break;
-        case 37:// <-
-            e.preventDefault();
-            if (e.altKey) {
-                if (!editor.MovePrev(false, false, e.shiftKey || false))
-                    editor.MovePrev(false, true, e.shiftKey || false); // Step out
-                while (editor.MovePrev(false, false, e.shiftKey || false))
-                    ; // Move to first
-            }
-            else {
-                editor.MovePrev(e.ctrlKey || false, true, e.shiftKey || false);
-            }
-            break;
-        case 39:// ->
-            e.preventDefault();
-            if (e.altKey) {
-                if (!editor.MoveNext(false, false, e.shiftKey || false))
-                    editor.MoveNext(false, true, e.shiftKey || false); // Step out
-                while (editor.MoveNext(false, false, e.shiftKey || false))
-                    ; // Move to first
-            }
-            else {
-                editor.MoveNext(e.ctrlKey || false, true, e.shiftKey || false);
-            }
-            break;
-        case 65:// CTRL-A - Select All
-            if (e.ctrlKey) {
-                e.preventDefault();
-                editor.SelectAll();
-            }
-            break;
-    }
-    $(document).focus(); // Prompts and alerts steal focus
-    update();
-});
-$(document).keypress(function (e) {
-    if ($("#dropdown-search").is(":focus"))
-        return; //Will fail if already focused. 
-    e.preventDefault();
-    if (inQuote) {
-        switch (e.which) {
-            case 34:// "
-                if (last != 92 /* \ */) {
-                    inQuote = false;
-                    token += '"';
-                    token = complete(token);
-                    editor.InsertWord(token);
-                    token = "";
-                }
-                else {
-                    token += '"';
-                }
-                break;
-            default:
-                if (e.which >= 32)
-                    token += String.fromCharCode(e.which);
-                break;
-        }
-        last = e.which;
-    }
-    else {
-        switch (e.which) {
-            case 32:// space
-                if (token.length > 0) {
-                    token = complete(token);
-                    editor.InsertWord(token);
-                    token = "";
-                }
-                break;
-            case 34:// "
-                if (token.length == 0)
-                    inQuote = true;
-                token += '"';
-                break;
-            case 91:// [
-                if (token.length == 0) {
-                    e.preventDefault();
-                    editor.InsertList();
-                }
-                else {
-                    token += '[';
-                }
-                break;
-            case 93:// [
-                if (token.length == 0) {
-                    e.preventDefault();
-                    editor.MoveNext(true, true, false);
-                }
-                else {
-                    token += ']';
-                }
-                break;
-            default:
-                if (e.which >= 32) {
-                    token += String.fromCharCode(e.which);
-                    editor.SelectNone();
-                }
-                break;
-        }
-    }
-    update();
-});
-// function hellohello() {
-//     console.log('hellohello!!!!!');
-//     // $(function() {
-//         return getJoyFileString();
-//     //});
-//   }
-$(document).ready(function () {
-    update();
-    // var rest = hellohello();
-    // console.log('document ready');
-    // var resStr = JSON.stringify(rest, null, 4)
-    // console.log(resStr);
-});
-
-
-/***/ }),
 /* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -10855,9 +10847,8 @@ $(document).ready(function () {
 
 // Joy Language Engine
 Object.defineProperty(exports, "__esModule", { value: true });
-var $ = __webpack_require__(0);
 var lexer_1 = __webpack_require__(4);
-var tokens_1 = __webpack_require__(1);
+var tokens_1 = __webpack_require__(0);
 var Joy = /** @class */ (function () {
     function Joy() {
         // error display functions
@@ -10954,10 +10945,6 @@ var Joy = /** @class */ (function () {
             this.compile(ast)(this);
         };
         this.lexNew = function (src) {
-            var expected = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                expected[_i - 1] = arguments[_i];
-            }
             var toks = [];
             var lexer = new lexer_1.Lexer(src);
             var i = 0;
@@ -11387,7 +11374,8 @@ function initialJoyprimitives(j) {
     });
     j.primitive('aaa', function () {
         // /*
-        var source = "\n                (* Sample application for editor *)\n    \n            (* FILE:   samplelij.joy *)\n    \n            LIBRA\n    \n                _samplelib == true; \n    \n            (* more \n              comments *)\n    \n                new-sum == \n                    0 \n                    [ + ] \n                    fold;   # redefine sum # #############\n    \n                new-prod == 1 [ * ] fold;  # another comment \n    \n                # test1 == \"aaa \"bbb\" ccc\";\n                test2 == \"aaa  (* ccc *) ##\";\n    \n                SAMPLELIB == \"samplelij.joy - simple sample library\n\".\n    \n            (* end LIBRA *)\n    \n            \"samplelib is loaded\n\" putchars.\n    \n    \n            (* \n                libload - read file and add to defines\n    \n                DEFINE -\n                    no lines between statements\n                    ';' termination except last '.'\n            *)\n    \n            DEFINE\n                square == dup *;\n                quad == square\n                        square;\n                quad-list == [ quad ] map;\n                quad-prod-sum-diff == quad-list dup new-prod swap new-sum -.\n    \n            [1 2 3 4 5] quad-prod-sum-diff.\n    \n        ";
+        // const source = "\"(* Sample application for editor *)\n\n\\\"(* FILE:   samplelib.joy *)\n\nLIBRA\n\n    _samplelib == true; \n\n(* more \n   comments *)\n\n    new-sum == \n        0 \n        [ + ] \n        fold;   # redefine sum # #############\n\n    new-prod == 1 [ * ] fold;  # another comment \n\n    test1 == \\\"aaa \\\\\"bbb\\\\\" ccc\\\";\n    test2 == \\\"aaa  (* ccc *) ##\\\";\n\n    SAMPLELIB == \\\"samplelib.joy - simple sample library\\n\\\".\n\n(* end LIBRA *)\n\n\\\"samplelib is loaded\\n\\\" putchars.\n\"\n\n(* \n    libload - read file and add to defines\n\n    DEFINE -\n        no lines between statements\n        ';' termination except last '.'\n*)\n\nDEFINE\n    square == dup *;\n    quad == square\n            square;\n    quad-list == [ quad ] map;\n    quad-prod-sum-diff == quad-list dup new-prod swap new-sum -.\n\n[1 2 3 4 5] quad-prod-sum-diff.\n\n\n\"";
+        var source = "(* Sample application for editor *)\n\n\\(* FILE:   samplelib.joy *)\n\nLIBRA\n\n    _samplelib == true; \n\n(* more \n   comments *)\n\n    new-sum == \n        0 \n        [ + ] \n        fold;   # redefine sum # #############\n\n    new-prod == 1 [ * ] fold;  # another comment \n\n    test1 == \\\"aaa \\\\\"bbb\\\\\" ccc\\\";\n    test2 == \\\"aaa  (* ccc *) ##\\\";\n\n    SAMPLELIB == \\\"samplelib.joy - simple sample library\\n\\\".\n\n(* end LIBRA *)\n\n\\\"samplelib is loaded\\n\\\" putchars.\n\n\n(* \n    libload - read file and add to defines\n\n    DEFINE -\n        no lines between statements\n        ';' termination except last '.'\n*)\n\nDEFINE\n    square == dup *;\n    quad == square\n            square;\n    quad-list == [ quad ] map;\n    quad-prod-sum-diff == quad-list dup new-prod swap new-sum -.\n\n[1 2 3 4 5] quad-prod-sum-diff.\n\n\n";
         // */
         j.processJoySource(source);
     });
@@ -11588,18 +11576,22 @@ function initialJoyprimitives(j) {
     function is2Numbers(x, y) {
         return typeof x === 'number' && typeof y === 'number';
     }
-    function hellohello() {
-        console.log('hellohello!!!!!');
-        // $(function() {
+    function contentProviderCallback() {
+        console.debug('executing content provider callback');
+        //Note: getJoyFileString is a script function within the vscode content provider 
         return getJoyFileString();
-        //});
     }
     $(document).ready(function () {
-        var rest = hellohello();
-        console.log('document ready');
-        var resStr = JSON.stringify(rest, null, 4);
-        console.log(resStr);
-        j.processJoySource(rest);
+        console.debug('document ready');
+        var joyStr = contentProviderCallback();
+        j.processJoySource(joyStr);
+        $("#dropdown-search").empty();
+        var defs = j.getDefines();
+        console.debug('populating dictionary dropdown');
+        for (var _i = 0, _a = Object.entries(defs); _i < _a.length; _i++) {
+            var _b = _a[_i], k = _b[0], v = _b[1];
+            $("#dropdown-dictionary").append("<a class=\"drop-element\" href=\"#" + k + "\">" + k + " == " + v + "</a>");
+        }
     });
 }
 
@@ -11615,7 +11607,7 @@ function initialJoyprimitives(j) {
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 var utility_1 = __webpack_require__(5);
-var tokens_1 = __webpack_require__(1);
+var tokens_1 = __webpack_require__(0);
 var Lexer = /** @class */ (function () {
     function Lexer(src) {
         this.src = src;

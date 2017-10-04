@@ -161,11 +161,8 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         <link rel="Stylesheet" href="${relativePath}/../../resources/css/editor.css" type="text/css" />
         <script type="text/javascript" src="${relativePath}/../../assets/joyEditor/js/test.js"></script>
         <script id="joyFile" type="text/javascript">
-          var name = 'joyStrUndefined';
-
           $(function() {
           function getJoyFileString() {
-              console.log('so far so good....');
               return '${joyFileStr}';
           }
           window.getJoyFileString=getJoyFileString;
@@ -175,7 +172,7 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         <script>
         /* When the user clicks on the button,
         toggle between hiding and showing the dropdown content */
-        function myFunction() {
+        function inputClick() {
             document.getElementById("dropdown-dictionary").classList.toggle("show");
         }
         
@@ -227,7 +224,6 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         </script>
     </head>
     <body>
-        <h1>Joy Editor</h1>
         <div id="demo"></div>
         <hr />
         <div class="title-container">
@@ -236,13 +232,19 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         </div>
         <hr />
         <div class="title-container">
+          <div class="title-header">Dictionary Explorer</div>        
+          <div class="dropdown">
+            <div class="container">          
+              <input id="dropdown-search" onclick="inputClick()" class="drop-input" type="text" placeholder="Search.." onkeyup="filterFunction()">            
+              <div id="dropdown-dictionary" class="dropdown-content"></div>
+              <div id="element-defintion"></div>          
+            </div>                        
+          </div>
+        </div>
+        <hr />
+        <div class="title-container">
           <div class="title-header">Stack Results</div>  
           <div id="context"></div>
-        </div>
-        <hr />        
-        <div class="title-container">
-          <div class="title-header">Dictionary Definitions</div>        
-          <div id="dictionary"></div>
         </div>
         <hr />                
         <div class="title-container">
@@ -253,26 +255,6 @@ export class JoyEditorProvider implements vscode.TextDocumentContentProvider {
         <div class="title-container">
           <div class="title-header">Error Console</div>        
           <div id="error"></div>
-        </div>
-        <hr />
-        <div class="title-container">
-          <div class="title-header">Dictionary Explorer</div>        
-          <div class="dropdown">
-          <div class="container">          
-            <button onclick="myFunction()" class="dropbtn">Dictionary</button>
-            <div id="dropdown-dictionary" class="dropdown-content">
-              <input id="dropdown-search" class="drop-input" type="text" placeholder="Search.." onkeyup="filterFunction()">
-              <a class="drop-element" href="#about">About</a>
-              <a class="drop-element" href="#base">Base</a>
-              <a class="drop-element" href="#blog">Blog</a>
-              <a class="drop-element" href="#contact">Contact</a>
-              <a class="drop-element" href="#custom">Custom</a>
-              <a class="drop-element" href="#support">Support</a>
-              <a class="drop-element" href="#tools">Tools</a>
-            </div>
-            <div id="element-defintion"><span>hi</span></div>          
-          </div>                        
-        </div>
         </div>
         <hr />
         <h2><a target="_blank" href="http://youtu.be/R3MNcA2dpts?hd=1">Demo based off forked "Be Brief!" Editor</a></h2>
