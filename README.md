@@ -9,3 +9,7 @@
 ## Get up and running straight away
 * press `F5` to run in debug mode
 * press `Ctrl+Shift+P` or `Cmd+Shift+P` on Mac to toggle the command dropdown,  type `Joy Editor`, and select `Joy Editor: Launch the Editor`
+
+## References
+Interactive editor component forked from brief editor
+author: AshleyF url: https://github.com/AshleyF/brief
